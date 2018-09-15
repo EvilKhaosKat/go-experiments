@@ -1,2 +1,3 @@
 # go-experiments
-Go lang experiments of mine
+## ping-pong
+Simple cli ping-pong game.
