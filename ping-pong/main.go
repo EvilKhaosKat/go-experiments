@@ -50,18 +50,30 @@ mainLoop:
 func visualize(game Game) {
 	table := game.table
 
-	clearTerminal(table)
+	clearTerminal(table.width, table.height)
 
-	ball := table.ball
-	termbox.SetCell(ball.x, ball.y, BallSymbol, Foreground, Background)
+	visualizeBall(table.ball)
+	visualizeBat(table.leftBat)
+	visualizeBat(table.rightBat)
 
 	termbox.Flush()
 }
 
+func visualizeBall(ball *Ball) {
+	termbox.SetCell(ball.x, ball.y, BallSymbol, Foreground, Background)
+}
+
+func visualizeBat(bat *Bat) {
+	batHeadCoor := bat.yCoor
+	for y := bat.yCoor; y < batHeadCoor+bat.length; y++ {
+		termbox.SetCell(bat.xCoor, y, BatBodySymbol, Foreground, Background)
+	}
+}
+
 //TODO it's significantly cheaper to erase only previous states/cells instead of full screen
-func clearTerminal(table *Table) {
-	for x := 0; x <= table.width; x++ {
-		for y := 0; y <= table.height; y++ {
+func clearTerminal(width, height int) {
+	for x := 0; x <= width; x++ {
+		for y := 0; y <= height; y++ {
 			termbox.SetCell(x, y, EmptySymbol, Foreground, Background)
 		}
 	}

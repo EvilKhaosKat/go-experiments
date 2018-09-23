@@ -19,7 +19,7 @@ type Table struct {
 }
 
 type Bat struct {
-	yCoor, length, ySpeed int
+	xCoor, yCoor, length, ySpeed int
 }
 
 type Ball struct {
@@ -34,8 +34,8 @@ type Player struct {
 }
 
 func NewGame() Game {
-	leftBat := newBat()
-	rightBat := newBat()
+	leftBat := newBat(0)
+	rightBat := newBat(TableWidth - 1)
 
 	table := newTable(leftBat, rightBat)
 
@@ -111,8 +111,8 @@ func newTable(leftBat, rightBat *Bat) *Table {
 		newBall()}
 }
 
-func newBat() *Bat {
-	return &Bat{TableHeight/2 - BatLength/2, BatLength, 0}
+func newBat(xCoor int) *Bat {
+	return &Bat{xCoor, TableHeight/2 - BatLength/2, BatLength, 0}
 }
 
 func newPlayer(name string, bat *Bat) *Player {
