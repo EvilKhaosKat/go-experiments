@@ -19,7 +19,7 @@ type Table struct {
 }
 
 type Bat struct {
-	yCoor, length int
+	yCoor, length, ySpeed int
 }
 
 type Ball struct {
@@ -47,6 +47,10 @@ func NewGame() Game {
 
 func (game *Game) tick() {
 	game.updateBallCoor()
+
+	table := game.table
+	game.updateBatCoor(table.leftBat)
+	game.updateBatCoor(table.rightBat)
 }
 
 func (game *Game) updateBallCoor() {
@@ -59,7 +63,21 @@ func (game *Game) updateBallCoor() {
 
 	updateBallX(ball, width)
 	updateBallY(ball, height)
+}
 
+func (game *Game) updateBatCoor(bat *Bat) {
+	bat.yCoor = bat.yCoor + bat.ySpeed
+
+	height := game.table.height
+	if bat.yCoor+bat.length > height {
+		bat.yCoor = height - bat.length
+		bat.ySpeed = 0
+	}
+
+	if bat.yCoor < 0 {
+		bat.yCoor = 0
+		bat.ySpeed = 0
+	}
 }
 
 func updateBallX(ball *Ball, width int) {
@@ -94,7 +112,7 @@ func newTable(leftBat, rightBat *Bat) *Table {
 }
 
 func newBat() *Bat {
-	return &Bat{TableHeight/2 - BatLength/2, BatLength}
+	return &Bat{TableHeight/2 - BatLength/2, BatLength, 0}
 }
 
 func newPlayer(name string, bat *Bat) *Player {
