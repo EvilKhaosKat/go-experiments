@@ -45,7 +45,7 @@ func NewGame() Game {
 	}
 }
 
-func (game *Game) tick() {
+func (game *Game) Tick() {
 	game.updateBallCoor()
 
 	table := game.table
@@ -100,7 +100,7 @@ func updateBallY(ball *Ball, height int) {
 	}
 	if ball.y < 0 {
 		ball.y = -ball.y
-		ball.xSpeed = -ball.xSpeed
+		ball.ySpeed = -ball.ySpeed
 	}
 }
 
@@ -120,5 +120,5 @@ func newPlayer(name string, bat *Bat) *Player {
 }
 
 func newBall() *Ball {
-	return &Ball{TableWidth / 2, TableHeight / 2, 0, 0}
+	return &Ball{TableWidth / 2, TableHeight / 2, 1, 1}
 }
