@@ -6,10 +6,11 @@ import (
 )
 
 const (
-	TickDelayMs   = 100 * time.Millisecond
+	TickDelayMs   = 50 * time.Millisecond
 	EmptySymbol   = ' '
 	BallSymbol    = '*'
 	BatBodySymbol = '|'
+	BorderSymbol  = '█'
 	Foreground    = termbox.ColorWhite
 	Background    = termbox.ColorBlack
 )
@@ -51,12 +52,23 @@ func visualize(game Game) {
 	table := game.table
 
 	clearTerminal(table.width, table.height)
+	drawBorders(table.width, table.height)
 
 	visualizeBall(table.ball)
 	visualizeBat(table.leftBat)
 	visualizeBat(table.rightBat)
 
 	termbox.Flush()
+}
+
+func drawBorders(width int, height int) {
+	for x := 0; x <= width; x++ {
+		termbox.SetCell(x, height+1, BorderSymbol, Foreground, Background)
+	}
+
+	for y := 0; y <= height; y++ {
+		termbox.SetCell(width+1, y, BorderSymbol, Foreground, Background)
+	}
 }
 
 func visualizeBall(ball *Ball) {
