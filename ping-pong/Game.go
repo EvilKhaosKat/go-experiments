@@ -17,6 +17,10 @@ type GameEvent int
 const (
 	LeftPlayerScores = GameEvent(iota)
 	RightPlayerScores
+	LeftBatUp
+	LeftBatDown
+	RightBatUp
+	RightBatDown
 )
 
 //Table describes table state
@@ -41,15 +45,15 @@ type Player struct {
 	score int
 }
 
-func NewGame() Game {
+func NewGame() *Game {
 	leftBat := newBat(0)
 	rightBat := newBat(TableWidth)
 
 	table := newTable(leftBat, rightBat)
 
-	gameEvents := make(chan GameEvent)
+	gameEvents := make(chan GameEvent, 1)
 
-	game := Game{table,
+	game := &Game{table,
 		newPlayer("Left Player", leftBat),
 		newPlayer("Right Player", rightBat),
 		gameEvents,
@@ -60,7 +64,10 @@ func NewGame() Game {
 	return game
 }
 
-func handleGameEvents(game Game, gameEvents <-chan GameEvent) {
+func handleGameEvents(game *Game, gameEvents <-chan GameEvent) {
+	leftBat := game.table.leftBat
+	rightBat := game.table.rightBat
+
 	for event := range gameEvents {
 		switch event {
 		case LeftPlayerScores:
@@ -69,6 +76,15 @@ func handleGameEvents(game Game, gameEvents <-chan GameEvent) {
 		case RightPlayerScores:
 			game.rightPlayer.score = game.rightPlayer.score + 1
 			game.resetBallPosition()
+
+		case LeftBatUp:
+			leftBat.ySpeed = -1
+		case LeftBatDown:
+			leftBat.ySpeed = 1
+		case RightBatUp:
+			rightBat.ySpeed = -1
+		case RightBatDown:
+			rightBat.ySpeed = 1
 		}
 	}
 }
@@ -102,16 +118,15 @@ func (game *Game) updateBallCoor() {
 
 func (game *Game) updateBatCoor(bat *Bat) {
 	bat.yCoor = bat.yCoor + bat.ySpeed
+	bat.ySpeed = 0
 
 	height := game.table.height
 	if bat.yCoor+bat.length > height {
 		bat.yCoor = height - bat.length
-		bat.ySpeed = 0
 	}
 
 	if bat.yCoor < 0 {
 		bat.yCoor = 0
-		bat.ySpeed = 0
 	}
 }
 

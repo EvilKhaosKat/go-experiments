@@ -9,8 +9,8 @@ const (
 	TickDelayMs   = 50 * time.Millisecond
 	EmptySymbol   = ' '
 	BallSymbol    = '*'
-	BatBodySymbol = '|'
-	BorderSymbol  = '█'
+	BatBodySymbol = '#'
+	BorderSymbol  = '.'
 	Foreground    = termbox.ColorWhite
 	Background    = termbox.ColorBlack
 )
@@ -22,18 +22,16 @@ func main() {
 	}
 	defer termbox.Close()
 
+	game := NewGame()
 	finishGame := make(chan bool)
 	//TODO check whether terminal size is big enough
 	//termbox.Size()
 
-	go handleTerminalEvents(finishGame)
-	launchGame(finishGame)
+	go handleTerminalEvents(game, finishGame)
+	launchGameLoop(game, finishGame)
 }
 
-func launchGame(finishGame chan bool) {
-	game := NewGame()
-	visualize(game)
-
+func launchGameLoop(game *Game, finishGame chan bool) {
 	ticker := time.NewTicker(TickDelayMs)
 
 mainLoop:
@@ -48,11 +46,11 @@ mainLoop:
 	}
 }
 
-func visualize(game Game) {
+func visualize(game *Game) {
 	table := game.table
 
 	clearTerminal(table.width, table.height)
-	//drawBorders(table.width, table.height)
+	drawBorders(table.width, table.height)
 
 	visualizeBall(table.ball)
 	visualizeBat(table.leftBat)
@@ -91,15 +89,27 @@ func clearTerminal(width, height int) {
 	}
 }
 
-func handleTerminalEvents(finishGame chan bool) {
+//TODO handle terminal events in more readable way
+func handleTerminalEvents(game *Game, finishGame chan bool) {
 	//wait for esc or ctrl+q pressed, and then exit
 terminalEventsLoop:
 	for {
 		switch ev := termbox.PollEvent(); ev.Type {
 		case termbox.EventKey:
-			if ev.Key == termbox.KeyEsc ||
-				ev.Key == termbox.KeyCtrlQ {
+			switch ev.Key {
+			case termbox.KeyEsc, termbox.KeyCtrlQ:
 				break terminalEventsLoop
+			case termbox.KeyArrowUp:
+				game.gameEvents <- RightBatUp
+			case termbox.KeyArrowDown:
+				game.gameEvents <- RightBatDown
+			default:
+				switch ev.Ch {
+				case 'w', 'W':
+					game.gameEvents <- LeftBatUp
+				case 's', 'S':
+					game.gameEvents <- LeftBatDown
+				}
 			}
 		case termbox.EventError:
 			panic(ev.Err)
