@@ -35,7 +35,7 @@ type Player struct {
 
 func NewGame() Game {
 	leftBat := newBat(0)
-	rightBat := newBat(TableWidth - 1)
+	rightBat := newBat(TableWidth)
 
 	table := newTable(leftBat, rightBat)
 
@@ -56,12 +56,15 @@ func (game *Game) Tick() {
 func (game *Game) updateBallCoor() {
 	table := game.table
 
+	leftBat := table.leftBat
+	rightBat := table.rightBat
+
 	ball := table.ball
 
 	height := table.height
 	width := table.width
 
-	updateBallX(ball, width)
+	updateBallX(ball, leftBat, rightBat, width)
 	updateBallY(ball, height)
 }
 
@@ -80,16 +83,32 @@ func (game *Game) updateBatCoor(bat *Bat) {
 	}
 }
 
-func updateBallX(ball *Ball, width int) {
+func updateBallX(ball *Ball, leftBat, rightBat *Bat, width int) {
 	ball.x = ball.x + ball.xSpeed
-	if ball.x > width {
-		ball.x = width - (ball.x - width)
-		ball.xSpeed = -ball.xSpeed
-	}
+
 	if ball.x < 0 {
-		ball.x = -ball.x
-		ball.xSpeed = -ball.xSpeed
+		impactY := ball.y + ball.ySpeed/2
+		if isBallTouchesBat(leftBat, impactY) {
+			ball.x = -ball.x
+			ball.xSpeed = -ball.xSpeed
+		} else {
+			//TODO add
+		}
 	}
+
+	if ball.x > width {
+		impactY := ball.y + ball.ySpeed/2
+		if isBallTouchesBat(rightBat, impactY) {
+			ball.x = width - (ball.x - width)
+			ball.xSpeed = -ball.xSpeed
+		} else {
+			//TODO add
+		}
+	}
+}
+
+func isBallTouchesBat(bat *Bat, impactY int) bool {
+	return bat.yCoor <= impactY && (bat.yCoor+bat.length) >= impactY
 }
 
 func updateBallY(ball *Ball, height int) {
