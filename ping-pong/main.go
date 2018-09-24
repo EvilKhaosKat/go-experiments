@@ -52,7 +52,7 @@ func visualize(game Game) {
 	table := game.table
 
 	clearTerminal(table.width, table.height)
-	drawBorders(table.width, table.height)
+	//drawBorders(table.width, table.height)
 
 	visualizeBall(table.ball)
 	visualizeBat(table.leftBat)
@@ -84,8 +84,8 @@ func visualizeBat(bat *Bat) {
 
 //TODO it's significantly cheaper to erase only previous states/cells instead of full screen
 func clearTerminal(width, height int) {
-	for x := 0; x <= width; x++ {
-		for y := 0; y <= height; y++ {
+	for x := 0; x <= width+1; x++ {
+		for y := 0; y <= height+1; y++ {
 			termbox.SetCell(x, y, EmptySymbol, Foreground, Background)
 		}
 	}

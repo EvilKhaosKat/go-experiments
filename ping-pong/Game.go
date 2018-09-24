@@ -9,7 +9,15 @@ const (
 type Game struct {
 	table                   *Table
 	leftPlayer, rightPlayer *Player
+	gameEvents              chan GameEvent
 }
+
+type GameEvent int
+
+const (
+	LeftPlayerScores = GameEvent(iota)
+	RightPlayerScores
+)
 
 //Table describes table state
 type Table struct {
@@ -39,10 +47,37 @@ func NewGame() Game {
 
 	table := newTable(leftBat, rightBat)
 
-	return Game{table,
+	gameEvents := make(chan GameEvent)
+
+	game := Game{table,
 		newPlayer("Left Player", leftBat),
 		newPlayer("Right Player", rightBat),
+		gameEvents,
 	}
+
+	go handleGameEvents(game, gameEvents)
+
+	return game
+}
+
+func handleGameEvents(game Game, gameEvents <-chan GameEvent) {
+	for event := range gameEvents {
+		switch event {
+		case LeftPlayerScores:
+			game.leftPlayer.score = game.leftPlayer.score + 1
+			game.resetBallPosition()
+		case RightPlayerScores:
+			game.rightPlayer.score = game.rightPlayer.score + 1
+			game.resetBallPosition()
+		}
+	}
+}
+
+func (game *Game) resetBallPosition() {
+	ball := game.table.ball
+
+	ball.x = TableWidth / 2
+	ball.y = TableHeight / 2
 }
 
 func (game *Game) Tick() {
@@ -56,16 +91,13 @@ func (game *Game) Tick() {
 func (game *Game) updateBallCoor() {
 	table := game.table
 
-	leftBat := table.leftBat
-	rightBat := table.rightBat
-
 	ball := table.ball
 
 	height := table.height
 	width := table.width
 
-	updateBallX(ball, leftBat, rightBat, width)
-	updateBallY(ball, height)
+	game.updateBallX(ball, width)
+	game.updateBallY(ball, height)
 }
 
 func (game *Game) updateBatCoor(bat *Bat) {
@@ -83,7 +115,11 @@ func (game *Game) updateBatCoor(bat *Bat) {
 	}
 }
 
-func updateBallX(ball *Ball, leftBat, rightBat *Bat, width int) {
+//TODO rewrite collision logic
+func (game *Game) updateBallX(ball *Ball, width int) {
+	leftBat := game.table.leftBat
+	rightBat := game.table.rightBat
+
 	ball.x = ball.x + ball.xSpeed
 
 	if ball.x < 0 {
@@ -92,7 +128,7 @@ func updateBallX(ball *Ball, leftBat, rightBat *Bat, width int) {
 			ball.x = -ball.x
 			ball.xSpeed = -ball.xSpeed
 		} else {
-			//TODO add
+			game.gameEvents <- RightPlayerScores
 		}
 	}
 
@@ -102,7 +138,7 @@ func updateBallX(ball *Ball, leftBat, rightBat *Bat, width int) {
 			ball.x = width - (ball.x - width)
 			ball.xSpeed = -ball.xSpeed
 		} else {
-			//TODO add
+			game.gameEvents <- LeftPlayerScores
 		}
 	}
 }
@@ -111,7 +147,7 @@ func isBallTouchesBat(bat *Bat, impactY int) bool {
 	return bat.yCoor <= impactY && (bat.yCoor+bat.length) >= impactY
 }
 
-func updateBallY(ball *Ball, height int) {
+func (game *Game) updateBallY(ball *Ball, height int) {
 	ball.y = ball.y + ball.ySpeed
 	if ball.y > height {
 		ball.y = height - (ball.y - height)
