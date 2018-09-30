@@ -1,14 +1,17 @@
 package main
 
 import (
+	"fmt"
 	"math/rand"
 	"time"
 )
 
 const (
-	TableWidth  = 100
-	TableHeight = 40
-	BatLength   = 7
+	TableWidth     = 100
+	TableHeight    = 40
+	BatLength      = 7
+	ScoreToWon     = 10
+	BatMovingSpeed = 1
 )
 
 //Game is a main ping-pong struct, will all the information about state, and handful methods like 'Tick'.
@@ -17,6 +20,10 @@ type Game struct {
 	table                   *Table
 	leftPlayer, rightPlayer *Player
 	gameEvents              chan GameEvent
+}
+
+func (game *Game) String() string {
+	return fmt.Sprintf("Game{leftPlayer: %s, rightPlayer: %s}", game.leftPlayer, game.rightPlayer)
 }
 
 //GameEvent describes events can occure in games, such as reaction on player command to move bat,
@@ -34,7 +41,8 @@ const (
 	RightBatDown
 )
 
-//Table describes table state
+//Table describes table state.
+//Table has 2 dimensions, with the top in left upper corner.
 type Table struct {
 	width, height     int
 	leftBat, rightBat *Bat
@@ -54,6 +62,10 @@ type Player struct {
 	name  string
 	bat   *Bat
 	score int
+}
+
+func (player *Player) String() string {
+	return fmt.Sprintf("Player{name: %s, score: %d}", player.name, player.score)
 }
 
 func NewGame() *Game {
@@ -97,19 +109,19 @@ func handleGameEvents(game *Game) {
 			checkGameFinishes(game, newScore, RightPlayerWon)
 
 		case LeftBatUp:
-			leftBat.ySpeed = -1
+			leftBat.ySpeed = -BatMovingSpeed
 		case LeftBatDown:
-			leftBat.ySpeed = 1
+			leftBat.ySpeed = BatMovingSpeed
 		case RightBatUp:
-			rightBat.ySpeed = -1
+			rightBat.ySpeed = -BatMovingSpeed
 		case RightBatDown:
-			rightBat.ySpeed = 1
+			rightBat.ySpeed = BatMovingSpeed
 		}
 	}
 }
 
 func checkGameFinishes(game *Game, newScore int, event GameEvent) {
-	if newScore >= 10 {
+	if newScore >= ScoreToWon {
 		game.leftPlayer.score = 0
 		game.rightPlayer.score = 0
 		game.gameEvents <- event
