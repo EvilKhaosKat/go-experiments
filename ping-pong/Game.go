@@ -7,12 +7,13 @@ import (
 )
 
 const (
-	TableWidth      = 100
-	TableHeight     = 40
-	BatLength       = 7
-	ScoreToWon      = 10
-	BallMovingSpeed = 1
-	BatMovingSpeed  = 1
+	TableWidth       = 115
+	TableHeight      = 40
+	BatLength        = 10
+	ScoreToWon       = 10
+	BallInitialSpeed = 1
+	BallMaxSpeed     = 7
+	BatSpeed         = 1
 )
 
 //Game is a main ping-pong struct, will all the information about state, and handful methods like 'Tick'.
@@ -40,6 +41,7 @@ const (
 	RightPlayerWon
 	RightBatUp
 	RightBatDown
+	BallStrickesBat
 )
 
 //Table describes table state.
@@ -90,9 +92,29 @@ func NewGame() *Game {
 	return game
 }
 
+func newTable(leftBat, rightBat *Bat) *Table {
+	return &Table{TableWidth, TableHeight,
+		leftBat,
+		rightBat,
+		newBall()}
+}
+
+func newBat(xCoor int) *Bat {
+	return &Bat{xCoor, TableHeight/2 - BatLength/2, BatLength, 0}
+}
+
+func newPlayer(name string, bat *Bat) *Player {
+	return &Player{name, bat, 0}
+}
+
+func newBall() *Ball {
+	return &Ball{TableWidth / 2, TableHeight / 2, BallInitialSpeed, BallInitialSpeed}
+}
+
 func handleGameEvents(game *Game) {
 	leftBat := game.table.leftBat
 	rightBat := game.table.rightBat
+	ball := game.table.ball
 
 	for event := range game.gameEvents {
 		switch event {
@@ -110,13 +132,24 @@ func handleGameEvents(game *Game) {
 			checkGameFinishes(game, newScore, RightPlayerWon)
 
 		case LeftBatUp:
-			leftBat.ySpeed = -BatMovingSpeed
+			leftBat.ySpeed = -BatSpeed
 		case LeftBatDown:
-			leftBat.ySpeed = BatMovingSpeed
+			leftBat.ySpeed = BatSpeed
 		case RightBatUp:
-			rightBat.ySpeed = -BatMovingSpeed
+			rightBat.ySpeed = -BatSpeed
 		case RightBatDown:
-			rightBat.ySpeed = BatMovingSpeed
+			rightBat.ySpeed = BatSpeed
+
+		case BallStrickesBat:
+			if randomBool() && randomBool() {
+				ball.xSpeed = increaseUpToMax(ball.xSpeed, BallMaxSpeed)
+				break
+			}
+
+			if randomBool() && randomBool() {
+				ball.ySpeed = increaseUpToMax(ball.ySpeed, BallMaxSpeed)
+				break
+			}
 		}
 	}
 }
@@ -135,9 +168,12 @@ func (game *Game) resetBallPosition() {
 	ball.x = TableWidth / 2
 	ball.y = TableHeight / 2
 
+	ball.xSpeed = BallInitialSpeed
+	ball.ySpeed = BallInitialSpeed
+
 	ball.xSpeed = -ball.xSpeed
 
-	if rand.Intn(2) == 0 {
+	if randomBool() {
 		ball.ySpeed = -ball.ySpeed
 	}
 }
@@ -189,6 +225,8 @@ func (game *Game) updateBallX(ball *Ball, width int) {
 		if isBallTouchesBat(leftBat, impactY) {
 			ball.x = -ball.x
 			ball.xSpeed = -ball.xSpeed
+
+			game.gameEvents <- BallStrickesBat
 		} else {
 			game.gameEvents <- RightPlayerScores
 		}
@@ -199,6 +237,8 @@ func (game *Game) updateBallX(ball *Ball, width int) {
 		if isBallTouchesBat(rightBat, impactY) {
 			ball.x = width - (ball.x - width)
 			ball.xSpeed = -ball.xSpeed
+
+			game.gameEvents <- BallStrickesBat
 		} else {
 			game.gameEvents <- LeftPlayerScores
 		}
@@ -221,21 +261,27 @@ func (game *Game) updateBallY(ball *Ball, height int) {
 	}
 }
 
-func newTable(leftBat, rightBat *Bat) *Table {
-	return &Table{TableWidth, TableHeight,
-		leftBat,
-		rightBat,
-		newBall()}
+func randomBool() bool {
+	return rand.Intn(2) == 0
 }
 
-func newBat(xCoor int) *Bat {
-	return &Bat{xCoor, TableHeight/2 - BatLength/2, BatLength, 0}
+func increaseUpToMax(num, max int) int {
+	resultNum := abs(num)
+
+	if resultNum < max {
+		resultNum += 1
+	}
+
+	if num < 0 {
+		return -resultNum
+	} else {
+		return resultNum
+	}
 }
 
-func newPlayer(name string, bat *Bat) *Player {
-	return &Player{name, bat, 0}
-}
-
-func newBall() *Ball {
-	return &Ball{TableWidth / 2, TableHeight / 2, BallMovingSpeed, BallMovingSpeed}
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
 }

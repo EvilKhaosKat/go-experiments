@@ -48,12 +48,12 @@ func TestBatsMoving(t *testing.T) {
 
 	//then
 	newLeftBatY := game.table.leftBat.y
-	if initialY-newLeftBatY != -BatMovingSpeed {
+	if initialY-newLeftBatY != -BatSpeed {
 		t.Errorf("Left bat must be higher, but has coor %d, initial y coor %d", newLeftBatY, initialY)
 	}
 
 	newRightBatY := game.table.rightBat.y
-	if initialY-newRightBatY != BatMovingSpeed {
+	if initialY-newRightBatY != BatSpeed {
 		t.Errorf("Right bat must be lower, but has coor %d, initial y coor %d", newLeftBatY, initialY)
 	}
 }

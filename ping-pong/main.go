@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	TickDelayMs   = 40 * time.Millisecond
+	TickDelayMs   = 45 * time.Millisecond
 	EmptySymbol   = ' '
 	BallSymbol    = '*'
 	BatBodySymbol = '#'
@@ -123,8 +123,8 @@ func scoreToRune(score int) rune {
 
 //TODO it's significantly cheaper to erase only previous states/cells instead of full screen
 func clearTerminal(width, height int) {
-	for x := 0; x <= width+1; x++ {
-		for y := 0; y <= height+1; y++ {
+	for x := 0; x <= width+BallMaxSpeed; x++ {
+		for y := 0; y <= height+BallMaxSpeed; y++ {
 			termbox.SetCell(x, y, EmptySymbol, Foreground, Background)
 		}
 	}
