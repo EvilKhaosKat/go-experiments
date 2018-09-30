@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	TickDelayMs   = 50 * time.Millisecond
+	TickDelayMs   = 40 * time.Millisecond
 	EmptySymbol   = ' '
 	BallSymbol    = '*'
 	BatBodySymbol = '#'

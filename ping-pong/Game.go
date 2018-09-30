@@ -1,5 +1,10 @@
 package main
 
+import (
+	"math/rand"
+	"time"
+)
+
 const (
 	TableWidth  = 100
 	TableHeight = 40
@@ -52,6 +57,8 @@ type Player struct {
 }
 
 func NewGame() *Game {
+	rand.Seed(time.Now().UTC().UnixNano())
+
 	leftBat := newBat(0)
 	rightBat := newBat(TableWidth)
 
@@ -114,6 +121,12 @@ func (game *Game) resetBallPosition() {
 
 	ball.x = TableWidth / 2
 	ball.y = TableHeight / 2
+
+	ball.xSpeed = -ball.xSpeed
+
+	if rand.Intn(2) == 0 {
+		ball.ySpeed = -ball.ySpeed
+	}
 }
 
 func (game *Game) Tick() {
