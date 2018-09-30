@@ -74,8 +74,14 @@ func visualize(game *Game) {
 	visualizeBall(table.ball)
 	visualizeBat(table.leftBat)
 	visualizeBat(table.rightBat)
+	visualizeScore(game.leftPlayer, game.rightPlayer)
 
 	termbox.Flush()
+}
+
+func visualizeScore(leftPlayer *Player, rightPlayer *Player) {
+	printLeftPlayerScore(leftPlayer.score)
+	printRightPlayerScore(rightPlayer.score)
 }
 
 func drawBorders(width int, height int) {
@@ -99,6 +105,22 @@ func visualizeBat(bat *Bat) {
 	}
 }
 
+func printLeftPlayerScore(score int) {
+	printPlayerScore(0, score)
+}
+
+func printRightPlayerScore(score int) {
+	printPlayerScore(TableWidth, score)
+}
+
+func printPlayerScore(xCoor, score int) {
+	termbox.SetCell(xCoor, TableHeight+2, scoreToRune(score), Foreground, Background)
+}
+
+func scoreToRune(score int) rune {
+	return rune(score + '0')
+}
+
 //TODO it's significantly cheaper to erase only previous states/cells instead of full screen
 func clearTerminal(width, height int) {
 	for x := 0; x <= width+1; x++ {
@@ -110,7 +132,6 @@ func clearTerminal(width, height int) {
 
 //TODO handle terminal events in more readable way
 func handleTerminalEvents(game *Game, finishGame chan bool) {
-	//wait for esc or ctrl+q pressed, and then exit
 terminalEventsLoop:
 	for {
 		switch ev := termbox.PollEvent(); ev.Type {

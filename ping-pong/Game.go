@@ -6,19 +6,25 @@ const (
 	BatLength   = 7
 )
 
+//Game is a main ping-pong struct, will all the information about state, and handful methods like 'Tick'.
+//Player wins when gets 10 scores.
 type Game struct {
 	table                   *Table
 	leftPlayer, rightPlayer *Player
 	gameEvents              chan GameEvent
 }
 
+//GameEvent describes events can occure in games, such as reaction on player command to move bat,
+// or if player scores.
 type GameEvent int
 
 const (
 	LeftPlayerScores = GameEvent(iota)
-	RightPlayerScores
+	LeftPlayerWon
 	LeftBatUp
 	LeftBatDown
+	RightPlayerScores
+	RightPlayerWon
 	RightBatUp
 	RightBatDown
 )
@@ -59,23 +65,29 @@ func NewGame() *Game {
 		gameEvents,
 	}
 
-	go handleGameEvents(game, gameEvents)
+	go handleGameEvents(game)
 
 	return game
 }
 
-func handleGameEvents(game *Game, gameEvents <-chan GameEvent) {
+func handleGameEvents(game *Game) {
 	leftBat := game.table.leftBat
 	rightBat := game.table.rightBat
 
-	for event := range gameEvents {
+	for event := range game.gameEvents {
 		switch event {
 		case LeftPlayerScores:
-			game.leftPlayer.score = game.leftPlayer.score + 1
+			newScore := game.leftPlayer.score + 1
+			game.leftPlayer.score = newScore
 			game.resetBallPosition()
+
+			checkGameFinishes(game, newScore, LeftPlayerWon)
 		case RightPlayerScores:
-			game.rightPlayer.score = game.rightPlayer.score + 1
+			newScore := game.rightPlayer.score + 1
+			game.rightPlayer.score = newScore
 			game.resetBallPosition()
+
+			checkGameFinishes(game, newScore, RightPlayerWon)
 
 		case LeftBatUp:
 			leftBat.ySpeed = -1
@@ -86,6 +98,14 @@ func handleGameEvents(game *Game, gameEvents <-chan GameEvent) {
 		case RightBatDown:
 			rightBat.ySpeed = 1
 		}
+	}
+}
+
+func checkGameFinishes(game *Game, newScore int, event GameEvent) {
+	if newScore >= 10 {
+		game.leftPlayer.score = 0
+		game.rightPlayer.score = 0
+		game.gameEvents <- event
 	}
 }
 
