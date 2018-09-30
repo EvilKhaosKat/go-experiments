@@ -99,9 +99,9 @@ func visualizeBall(ball *Ball) {
 }
 
 func visualizeBat(bat *Bat) {
-	batHeadCoor := bat.yCoor
-	for y := bat.yCoor; y < batHeadCoor+bat.length; y++ {
-		termbox.SetCell(bat.xCoor, y, BatBodySymbol, Foreground, Background)
+	batHeadCoor := bat.y
+	for y := bat.y; y < batHeadCoor+bat.length; y++ {
+		termbox.SetCell(bat.x, y, BatBodySymbol, Foreground, Background)
 	}
 }
 

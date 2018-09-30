@@ -7,11 +7,12 @@ import (
 )
 
 const (
-	TableWidth     = 100
-	TableHeight    = 40
-	BatLength      = 7
-	ScoreToWon     = 10
-	BatMovingSpeed = 1
+	TableWidth      = 100
+	TableHeight     = 40
+	BatLength       = 7
+	ScoreToWon      = 10
+	BallMovingSpeed = 1
+	BatMovingSpeed  = 1
 )
 
 //Game is a main ping-pong struct, will all the information about state, and handful methods like 'Tick'.
@@ -50,7 +51,7 @@ type Table struct {
 }
 
 type Bat struct {
-	xCoor, yCoor, length, ySpeed int
+	x, y, length, ySpeed int
 }
 
 type Ball struct {
@@ -162,16 +163,16 @@ func (game *Game) updateBallCoor() {
 }
 
 func (game *Game) updateBatCoor(bat *Bat) {
-	bat.yCoor = bat.yCoor + bat.ySpeed
+	bat.y = bat.y + bat.ySpeed
 	bat.ySpeed = 0
 
 	height := game.table.height
-	if bat.yCoor+bat.length > height {
-		bat.yCoor = height - bat.length
+	if bat.y+bat.length > height {
+		bat.y = height - bat.length
 	}
 
-	if bat.yCoor < 0 {
-		bat.yCoor = 0
+	if bat.y < 0 {
+		bat.y = 0
 	}
 }
 
@@ -204,7 +205,7 @@ func (game *Game) updateBallX(ball *Ball, width int) {
 }
 
 func isBallTouchesBat(bat *Bat, impactY int) bool {
-	return bat.yCoor <= impactY && (bat.yCoor+bat.length) >= impactY
+	return bat.y <= impactY && (bat.y+bat.length) >= impactY
 }
 
 func (game *Game) updateBallY(ball *Ball, height int) {
@@ -235,5 +236,5 @@ func newPlayer(name string, bat *Bat) *Player {
 }
 
 func newBall() *Ball {
-	return &Ball{TableWidth / 2, TableHeight / 2, 1, 1}
+	return &Ball{TableWidth / 2, TableHeight / 2, BallMovingSpeed, BallMovingSpeed}
 }

@@ -33,7 +33,7 @@ func TestPlayersScores(t *testing.T) {
 func TestBatsMoving(t *testing.T) {
 	//given
 	game := NewGame()
-	initialY := game.table.leftBat.yCoor
+	initialY := game.table.leftBat.y
 
 	//when
 	game.gameEvents <- LeftBatDown //increase y
@@ -47,13 +47,38 @@ func TestBatsMoving(t *testing.T) {
 	game.gameEvents <- RightPlayerScores
 
 	//then
-	newLeftBatY := game.table.leftBat.yCoor
+	newLeftBatY := game.table.leftBat.y
 	if initialY-newLeftBatY != -BatMovingSpeed {
 		t.Errorf("Left bat must be higher, but has coor %d, initial y coor %d", newLeftBatY, initialY)
 	}
 
-	newRightBatY := game.table.rightBat.yCoor
+	newRightBatY := game.table.rightBat.y
 	if initialY-newRightBatY != BatMovingSpeed {
 		t.Errorf("Right bat must be lower, but has coor %d, initial y coor %d", newLeftBatY, initialY)
+	}
+}
+
+func TestBallMoving(t *testing.T) {
+	//given
+	game := NewGame()
+	ball := game.table.ball
+
+	xInitial := ball.x
+	yInitial := ball.y
+	xSpeed := ball.xSpeed
+	ySpeed := ball.ySpeed
+
+	//when
+	game.Tick()
+
+	//then
+	xNew := ball.x
+	if xNew != xInitial+xSpeed {
+		t.Errorf("X coordinate of ball is wrong, supposed to be %d, but it is %d", xInitial+xSpeed, xNew)
+	}
+
+	yNew := ball.y
+	if yNew != yInitial+ySpeed {
+		t.Errorf("Y coordinate of ball is wrong, supposed to be %d, but it is %d", yInitial+ySpeed, yNew)
 	}
 }
