@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"github.com/nsf/termbox-go"
+	"os"
 	"time"
 )
 
@@ -22,13 +24,30 @@ func main() {
 	}
 	defer termbox.Close()
 
-	game := NewGame()
-	finishGame := make(chan bool)
-	//TODO check whether terminal size is big enough
-	//termbox.Size()
+	validateTerminalSize()
 
+	game := NewGame()
+
+	finishGame := make(chan bool)
 	go handleTerminalEvents(game, finishGame)
 	launchGameLoop(game, finishGame)
+}
+
+func validateTerminalSize() {
+	width, height := termbox.Size()
+	reqWidth, reqHeight := getRequiredScreenSize()
+	if width < reqWidth || height < reqHeight {
+		termbox.Close()
+
+		fmt.Printf("Screen size is not sufficient. %dx%d minimum is required, %dx%d actually.\n",
+			reqWidth, reqHeight, width, height)
+
+		os.Exit(1)
+	}
+}
+
+func getRequiredScreenSize() (width, height int) {
+	return TableWidth + 3, TableHeight + 3
 }
 
 func launchGameLoop(game *Game, finishGame chan bool) {
