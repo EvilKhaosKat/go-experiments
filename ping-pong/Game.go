@@ -177,6 +177,7 @@ func (game *Game) updateBatCoor(bat *Bat) {
 }
 
 //TODO rewrite collision logic
+//TODO add collision tests for x and y
 func (game *Game) updateBallX(ball *Ball, width int) {
 	leftBat := game.table.leftBat
 	rightBat := game.table.rightBat
