@@ -86,11 +86,11 @@ func visualizeScore(leftPlayer *Player, rightPlayer *Player) {
 
 func drawBorders(width int, height int) {
 	for x := 0; x <= width; x++ {
-		termbox.SetCell(x, height+1, BorderSymbol, Foreground, Background)
+		termbox.SetCell(x, height, BorderSymbol, Foreground, Background)
 	}
 
-	for y := 0; y <= height; y++ {
-		termbox.SetCell(width+1, y, BorderSymbol, Foreground, Background)
+	for y := 0; y < height; y++ {
+		termbox.SetCell(width+1, y+1, BorderSymbol, Foreground, Background)
 	}
 }
 
@@ -114,7 +114,7 @@ func printRightPlayerScore(score int) {
 }
 
 func printPlayerScore(xCoor, score int) {
-	termbox.SetCell(xCoor, TableHeight+2, scoreToRune(score), Foreground, Background)
+	termbox.SetCell(xCoor, TableHeight+1, scoreToRune(score), Foreground, Background)
 }
 
 func scoreToRune(score int) rune {
@@ -124,7 +124,7 @@ func scoreToRune(score int) rune {
 //TODO it's significantly cheaper to erase only previous states/cells instead of full screen
 func clearTerminal(width, height int) {
 	for x := 0; x <= width+BallMaxSpeed; x++ {
-		for y := 0; y <= height+BallMaxSpeed; y++ {
+		for y := 0; y <= height+2; y++ {
 			termbox.SetCell(x, y, EmptySymbol, Foreground, Background)
 		}
 	}

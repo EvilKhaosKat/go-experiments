@@ -8,12 +8,12 @@ import (
 
 const (
 	TableWidth       = 115
-	TableHeight      = 40
+	TableHeight      = 36
 	BatLength        = 10
 	ScoreToWon       = 10
 	BallInitialSpeed = 1
+	BatSpeed         = 2
 	BallMaxSpeed     = 7
-	BatSpeed         = 1
 )
 
 //Game is a main ping-pong struct, will all the information about state, and handful methods like 'Tick'.
@@ -146,7 +146,7 @@ func handleGameEvents(game *Game) {
 				break
 			}
 
-			if randomBool() && randomBool() {
+			if randomBool() && randomBool() && randomBool() {
 				ball.ySpeed = increaseUpToMax(ball.ySpeed, BallMaxSpeed)
 				break
 			}
@@ -203,11 +203,11 @@ func (game *Game) updateBatCoor(bat *Bat) {
 	bat.ySpeed = 0
 
 	height := game.table.height
-	if bat.y+bat.length > height {
+	if bat.y+bat.length >= height {
 		bat.y = height - bat.length
 	}
 
-	if bat.y < 0 {
+	if bat.y <= 0 {
 		bat.y = 0
 	}
 }
