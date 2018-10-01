@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	TickDelayMs   = 45 * time.Millisecond
+	Fps           = 25
 	EmptySymbol   = ' '
 	BallSymbol    = '*'
 	BatBodySymbol = '#'
@@ -51,7 +51,7 @@ func getRequiredScreenSize() (width, height int) {
 }
 
 func launchGameLoop(game *Game, finishGame chan bool) {
-	ticker := time.NewTicker(TickDelayMs)
+	ticker := time.NewTicker(time.Second / Fps)
 
 mainLoop:
 	for {
@@ -89,8 +89,8 @@ func drawBorders(width int, height int) {
 		termbox.SetCell(x, height, BorderSymbol, Foreground, Background)
 	}
 
-	for y := 0; y < height; y++ {
-		termbox.SetCell(width+1, y+1, BorderSymbol, Foreground, Background)
+	for y := 0; y <= height; y++ {
+		termbox.SetCell(width+1, y, BorderSymbol, Foreground, Background)
 	}
 }
 
