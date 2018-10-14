@@ -1,14 +1,30 @@
 package main
 
 import (
+	"bufio"
+	"encoding/json"
+	"flag"
 	"fmt"
 	"github.com/nsf/termbox-go"
+	"log"
+	"net"
 	"os"
 	"time"
 )
 
 const (
-	Fps           = 25
+	Fps = 25
+)
+
+//networking
+const (
+	Port   = 4242
+	Client = "client"
+	Server = "server"
+)
+
+//terminal representation
+const (
 	EmptySymbol   = ' '
 	BallSymbol    = '*'
 	BatBodySymbol = '#'
@@ -23,14 +39,74 @@ func main() {
 		panic(err)
 	}
 	defer termbox.Close()
-
+	defer func() {
+		if r := recover(); r != nil {
+			termbox.Close()
+		}
+	}()
 	validateTerminalSize()
 
-	game := NewGame()
+	mode, port, ip := readCommandLineFlags()
 
-	finishGame := make(chan bool)
-	go handleTerminalEvents(game, finishGame)
-	launchGameLoop(game, finishGame)
+	game := NewGame()
+	go handleTerminalEvents(game, game.finishGame)
+
+	if *mode == Server {
+		clientConn := waitForClient(port)
+		go handleClientMessages(game, clientConn)
+		launchGameServerLoop(game, clientConn)
+	} else if *mode == Client {
+		fmt.Println(ip)
+		log.Println("Not implemented")
+		panic(err)
+	}
+}
+
+func handleClientMessages(game *Game, clientConn net.Conn) {
+	for {
+		clientMessage, err := bufio.NewReader(clientConn).ReadByte()
+		if err != nil {
+			log.Printf("Error during reading client clientMessage: %b", clientMessage)
+			panic(err)
+		}
+
+		eventFromClient := GameEvent(clientMessage)
+		if eventFromClient == RightBatUp || eventFromClient == RightBatDown {
+			game.gameEvents <- eventFromClient
+		} else {
+			log.Printf("Right client send incorrect event: %b", eventFromClient)
+			panic(err)
+		}
+	}
+}
+
+func waitForClient(port *int) net.Conn {
+	fmt.Printf("Waiting for client on port %d\n", *port)
+
+	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
+	if err != nil {
+		log.Printf("Error occured during creating server: %s", err)
+		panic(err)
+	}
+
+	conn, err := ln.Accept()
+	if err != nil {
+		log.Printf("Error occured during accepting client connection: %s", err)
+		panic(err)
+	}
+
+	return conn
+}
+
+func readCommandLineFlags() (mode *string, port *int, ip *string) {
+	mode = flag.String("mode", Server, "working mode, either server (by default) or client")
+
+	port = flag.Int("port", Port, "a port for server to listen or for client to connect")
+	ip = flag.String("ip", "127.0.0.1", "ip address for client to connect")
+
+	flag.Parse()
+
+	return mode, port, ip
 }
 
 func validateTerminalSize() {
@@ -50,38 +126,59 @@ func getRequiredScreenSize() (width, height int) {
 	return TableWidth + 3, TableHeight + 3
 }
 
-func launchGameLoop(game *Game, finishGame chan bool) {
+func launchGameServerLoop(game *Game, clientConn net.Conn) {
 	ticker := time.NewTicker(time.Second / Fps)
 
 mainLoop:
 	for {
 		select {
-		case <-finishGame:
+		case <-game.finishGame:
 			break mainLoop
 		case <-ticker.C:
 			game.Tick()
+			sendStateToClient(game, clientConn)
 			visualize(game)
 		}
 	}
 }
 
+func sendStateToClient(game *Game, clientConn net.Conn) {
+	state, err := json.Marshal(game)
+	if err != nil {
+		log.Printf("Error occured during creating server state: %s", err)
+		panic(err)
+	}
+
+	_, err = clientConn.Write(state)
+	if err != nil {
+		log.Printf("Eror during writing state message: %s", err)
+		panic(err)
+	}
+
+	_, err = clientConn.Write([]byte("\n"))
+	if err != nil {
+		log.Printf("Eror during writing line-ending for state message: %s", err)
+		panic(err)
+	}
+}
+
 func visualize(game *Game) {
-	table := game.table
+	table := game.Table
 
-	clearTerminal(table.width, table.height)
-	drawBorders(table.width, table.height)
+	clearTerminal(table.Width, table.Height)
+	drawBorders(table.Width, table.Height)
 
-	visualizeBall(table.ball)
-	visualizeBat(table.leftBat)
-	visualizeBat(table.rightBat)
-	visualizeScore(game.leftPlayer, game.rightPlayer)
+	visualizeBall(table.Ball)
+	visualizeBat(table.LeftBat)
+	visualizeBat(table.RightBat)
+	visualizeScore(game.LeftPlayer, game.RightPlayer)
 
 	termbox.Flush()
 }
 
 func visualizeScore(leftPlayer *Player, rightPlayer *Player) {
-	printLeftPlayerScore(leftPlayer.score)
-	printRightPlayerScore(rightPlayer.score)
+	printLeftPlayerScore(leftPlayer.Score)
+	printRightPlayerScore(rightPlayer.Score)
 }
 
 func drawBorders(width int, height int) {
@@ -95,13 +192,13 @@ func drawBorders(width int, height int) {
 }
 
 func visualizeBall(ball *Ball) {
-	termbox.SetCell(ball.x, ball.y, BallSymbol, Foreground, Background)
+	termbox.SetCell(ball.X, ball.Y, BallSymbol, Foreground, Background)
 }
 
 func visualizeBat(bat *Bat) {
-	batHeadCoor := bat.y
-	for y := bat.y; y < batHeadCoor+bat.length; y++ {
-		termbox.SetCell(bat.x, y, BatBodySymbol, Foreground, Background)
+	batHeadCoor := bat.Y
+	for y := bat.Y; y < batHeadCoor+bat.Length; y++ {
+		termbox.SetCell(bat.X, y, BatBodySymbol, Foreground, Background)
 	}
 }
 
