@@ -39,30 +39,99 @@ func main() {
 		panic(err)
 	}
 	defer termbox.Close()
-	defer func() {
-		if r := recover(); r != nil {
-			termbox.Close()
-		}
-	}()
+	//defer func() {
+	//	if r := recover(); r != nil {
+	//		termbox.Close()
+	//		fmt.Println(r)
+	//	}
+	//}()
 	validateTerminalSize()
 
 	mode, port, ip := readCommandLineFlags()
 
 	game := NewGame()
-	go handleTerminalEvents(game, game.finishGame)
+	go handleTerminalEvents(game.gameEvents, game.finishGame)
 
 	if *mode == Server {
+		game.launchGameEventsHandler()
+
 		clientConn := waitForClient(port)
 		go handleClientMessages(game, clientConn)
 		launchGameServerLoop(game, clientConn)
 	} else if *mode == Client {
-		fmt.Println(ip)
-		log.Println("Not implemented")
-		panic(err)
+		serverConn := connectToServer(ip, port)
+		go handleServerMessages(game, serverConn)
+		launchGameClientLoop(game, serverConn)
 	}
 }
 
-func handleClientMessages(game *Game, clientConn net.Conn) {
+func launchGameClientLoop(game *Game, serverConn *bufio.ReadWriter) {
+	ticker := time.NewTicker(time.Second / Fps)
+
+mainLoop:
+	for {
+		select {
+		case <-game.finishGame:
+			break mainLoop
+		case <-ticker.C:
+			go sendStateToServer(game, serverConn)
+			visualize(game)
+		}
+	}
+}
+
+func sendStateToServer(game *Game, serverConn *bufio.ReadWriter) {
+	for gameEvent := range game.gameEvents {
+		gameEventData := []byte{
+			byte(gameEvent),
+			'\n',
+		}
+
+		if _, err := serverConn.Write(gameEventData); err != nil {
+			log.Printf("Error during sending client events to server: %s. gameEvent: %s", err, gameEventData)
+			panic(err)
+		}
+
+		err := serverConn.Flush()
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func handleServerMessages(game *Game, serverConn *bufio.ReadWriter) {
+	for {
+		serverStateMessage, _, err := serverConn.ReadLine()
+		if err != nil {
+			log.Printf("Error during reading server state message: %b", serverStateMessage)
+			panic(err)
+		}
+
+		var serverGameState Game
+
+		if err := json.Unmarshal([]byte(serverStateMessage), &serverGameState); err != nil {
+			log.Printf("Error during parsing server state: %s. serverStateMessage: %s", err, serverStateMessage)
+			panic(err)
+
+		}
+
+		game.Table = serverGameState.Table
+		game.LeftPlayer = serverGameState.LeftPlayer
+		game.RightPlayer = serverGameState.RightPlayer
+	}
+}
+
+func connectToServer(ip *string, port *int) *bufio.ReadWriter {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", *ip, *port))
+	if err != nil {
+		log.Printf("Error occured during connecting to server: %s", err)
+		panic(err)
+	}
+
+	return bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
+}
+
+func handleClientMessages(game *Game, clientConn *bufio.ReadWriter) {
 	for {
 		clientMessage, err := bufio.NewReader(clientConn).ReadByte()
 		if err != nil {
@@ -80,7 +149,7 @@ func handleClientMessages(game *Game, clientConn net.Conn) {
 	}
 }
 
-func waitForClient(port *int) net.Conn {
+func waitForClient(port *int) *bufio.ReadWriter {
 	fmt.Printf("Waiting for client on port %d\n", *port)
 
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
@@ -95,7 +164,7 @@ func waitForClient(port *int) net.Conn {
 		panic(err)
 	}
 
-	return conn
+	return bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
 }
 
 func readCommandLineFlags() (mode *string, port *int, ip *string) {
@@ -126,7 +195,7 @@ func getRequiredScreenSize() (width, height int) {
 	return TableWidth + 3, TableHeight + 3
 }
 
-func launchGameServerLoop(game *Game, clientConn net.Conn) {
+func launchGameServerLoop(game *Game, clientConn *bufio.ReadWriter) {
 	ticker := time.NewTicker(time.Second / Fps)
 
 mainLoop:
@@ -142,7 +211,7 @@ mainLoop:
 	}
 }
 
-func sendStateToClient(game *Game, clientConn net.Conn) {
+func sendStateToClient(game *Game, clientConn *bufio.ReadWriter) {
 	state, err := json.Marshal(game)
 	if err != nil {
 		log.Printf("Error occured during creating server state: %s", err)
@@ -155,9 +224,14 @@ func sendStateToClient(game *Game, clientConn net.Conn) {
 		panic(err)
 	}
 
-	_, err = clientConn.Write([]byte("\n"))
+	_, err = clientConn.Write([]byte{'\n'})
 	if err != nil {
 		log.Printf("Eror during writing line-ending for state message: %s", err)
+		panic(err)
+	}
+
+	err = clientConn.Flush()
+	if err != nil {
 		panic(err)
 	}
 }
@@ -228,7 +302,7 @@ func clearTerminal(width, height int) {
 }
 
 //TODO handle terminal events in more readable way
-func handleTerminalEvents(game *Game, finishGame chan bool) {
+func handleTerminalEvents(gameEvents chan GameEvent, finishGame chan bool) {
 terminalEventsLoop:
 	for {
 		switch ev := termbox.PollEvent(); ev.Type {
@@ -237,15 +311,15 @@ terminalEventsLoop:
 			case termbox.KeyEsc, termbox.KeyCtrlQ:
 				break terminalEventsLoop
 			case termbox.KeyArrowUp:
-				game.gameEvents <- RightBatUp
+				gameEvents <- RightBatUp
 			case termbox.KeyArrowDown:
-				game.gameEvents <- RightBatDown
+				gameEvents <- RightBatDown
 			default:
 				switch ev.Ch {
 				case 'w', 'W':
-					game.gameEvents <- LeftBatUp
+					gameEvents <- LeftBatUp
 				case 's', 'S':
-					game.gameEvents <- LeftBatDown
+					gameEvents <- LeftBatDown
 				}
 			}
 		case termbox.EventError:

@@ -7,6 +7,7 @@ import (
 func TestPlayersScores(t *testing.T) {
 	//given
 	game := NewGame()
+	game.launchGameEventsHandler()
 
 	//when
 	game.gameEvents <- LeftPlayerScores
@@ -33,6 +34,7 @@ func TestPlayersScores(t *testing.T) {
 func TestBatsMoving(t *testing.T) {
 	//given
 	game := NewGame()
+	game.launchGameEventsHandler()
 	initialY := game.Table.LeftBat.Y
 
 	//when
@@ -61,6 +63,7 @@ func TestBatsMoving(t *testing.T) {
 func TestBallMoving(t *testing.T) {
 	//given
 	game := NewGame()
+	game.launchGameEventsHandler()
 	ball := game.Table.Ball
 
 	xInitial := ball.X

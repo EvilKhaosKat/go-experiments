@@ -32,7 +32,7 @@ func (game *Game) String() string {
 	return fmt.Sprintf("Game{LeftPlayer: %s, RightPlayer: %s}", game.LeftPlayer, game.RightPlayer)
 }
 
-//GameEvent describes events can occure in games, such as reaction on player command to move Bat,
+//GameEvent describes events can occur in games, such as reaction on player command to move Bat,
 // or if player scores.
 type GameEvent int
 
@@ -93,9 +93,11 @@ func NewGame() *Game {
 		finishGame,
 	}
 
-	go handleGameEvents(game)
-
 	return game
+}
+
+func (game *Game) launchGameEventsHandler() {
+	go handleGameEvents(game)
 }
 
 func newTable(leftBat, rightBat *Bat) *Table {
