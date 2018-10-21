@@ -6,7 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/nsf/termbox-go"
-	"log"
+	"github.com/pkg/errors"
 	"net"
 	"os"
 	"time"
@@ -39,17 +39,12 @@ func main() {
 		panic(err)
 	}
 	defer termbox.Close()
-	//defer func() {
-	//	if r := recover(); r != nil {
-	//		termbox.Close()
-	//		fmt.Println(r)
-	//	}
-	//}()
 	validateTerminalSize()
 
 	mode, port, ip := readCommandLineFlags()
 
 	game := NewGame()
+	defer handlePanic(game.finishGame)
 	go handleTerminalEvents(game.gameEvents, game.finishGame)
 
 	if *mode == Server {
@@ -59,9 +54,20 @@ func main() {
 		go handleClientMessages(game, clientConn)
 		launchGameServerLoop(game, clientConn)
 	} else if *mode == Client {
-		serverConn := connectToServer(ip, port)
+		serverConn := connectToServer(game.finishGame, ip, port)
 		go handleServerMessages(game, serverConn)
 		launchGameClientLoop(game, serverConn)
+	}
+}
+
+func handlePanic(finishGameChan chan bool) {
+	if r := recover(); r != nil {
+		termbox.Close()
+
+		fmt.Println(r)
+
+		finishGameChan <- true
+		os.Exit(0)
 	}
 }
 
@@ -81,6 +87,8 @@ mainLoop:
 }
 
 func sendStateToServer(game *Game, serverConn *bufio.ReadWriter) {
+	defer handlePanic(game.finishGame)
+
 	for gameEvent := range game.gameEvents {
 		gameEventData := []byte{
 			byte(gameEvent),
@@ -88,8 +96,7 @@ func sendStateToServer(game *Game, serverConn *bufio.ReadWriter) {
 		}
 
 		if _, err := serverConn.Write(gameEventData); err != nil {
-			log.Printf("Error during sending client events to server: %s. gameEvent: %s", err, gameEventData)
-			panic(err)
+			panic(errors.Wrapf(err, "Error during sending client event %s to server", gameEventData))
 		}
 
 		err := serverConn.Flush()
@@ -100,18 +107,19 @@ func sendStateToServer(game *Game, serverConn *bufio.ReadWriter) {
 }
 
 func handleServerMessages(game *Game, serverConn *bufio.ReadWriter) {
+	defer handlePanic(game.finishGame)
+
 	for {
 		serverStateMessage, _, err := serverConn.ReadLine()
 		if err != nil {
-			log.Printf("Error during reading server state message: %b", serverStateMessage)
-			panic(err)
+			panic(errors.Wrapf(err, "Error during reading server state message: %b", serverStateMessage))
 		}
 
 		var serverGameState Game
 
 		if err := json.Unmarshal([]byte(serverStateMessage), &serverGameState); err != nil {
-			log.Printf("Error during parsing server state: %s. serverStateMessage: %s", err, serverStateMessage)
-			panic(err)
+			panic(errors.Wrapf(err,
+				"Error during parsing server state %s", serverStateMessage))
 
 		}
 
@@ -121,30 +129,31 @@ func handleServerMessages(game *Game, serverConn *bufio.ReadWriter) {
 	}
 }
 
-func connectToServer(ip *string, port *int) *bufio.ReadWriter {
+func connectToServer(finishGame chan bool, ip *string, port *int) *bufio.ReadWriter {
+	defer handlePanic(finishGame)
+
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", *ip, *port))
 	if err != nil {
-		log.Printf("Error occured during connecting to server: %s", err)
-		panic(err)
+		panic(errors.Wrap(err, "Error occurred during connecting to server"))
 	}
 
 	return bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
 }
 
 func handleClientMessages(game *Game, clientConn *bufio.ReadWriter) {
+	defer handlePanic(game.finishGame)
+
 	for {
 		clientMessage, err := bufio.NewReader(clientConn).ReadByte()
 		if err != nil {
-			log.Printf("Error during reading client clientMessage: %b", clientMessage)
-			panic(err)
+			panic(errors.Wrapf(err, "Error during reading client clientMessage: %b", clientMessage))
 		}
 
 		eventFromClient := GameEvent(clientMessage)
 		if eventFromClient == RightBatUp || eventFromClient == RightBatDown {
 			game.gameEvents <- eventFromClient
 		} else {
-			log.Printf("Right client send incorrect event: %b", eventFromClient)
-			panic(err)
+			panic(errors.Wrapf(err, "Error during reading client clientMessage: %b", eventFromClient))
 		}
 	}
 }
@@ -154,14 +163,12 @@ func waitForClient(port *int) *bufio.ReadWriter {
 
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
 	if err != nil {
-		log.Printf("Error occured during creating server: %s", err)
-		panic(err)
+		panic(errors.Wrap(err, "Error occurred during creating server"))
 	}
 
 	conn, err := ln.Accept()
 	if err != nil {
-		log.Printf("Error occured during accepting client connection: %s", err)
-		panic(err)
+		panic(errors.Wrapf(err, "Error occurred during accepting client connection"))
 	}
 
 	return bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
@@ -214,20 +221,17 @@ mainLoop:
 func sendStateToClient(game *Game, clientConn *bufio.ReadWriter) {
 	state, err := json.Marshal(game)
 	if err != nil {
-		log.Printf("Error occured during creating server state: %s", err)
-		panic(err)
+		panic(errors.Wrap(err, "Error occured during creating server state"))
 	}
 
 	_, err = clientConn.Write(state)
 	if err != nil {
-		log.Printf("Eror during writing state message: %s", err)
-		panic(err)
+		panic(errors.Wrap(err, "Eror during writing state message"))
 	}
 
 	_, err = clientConn.Write([]byte{'\n'})
 	if err != nil {
-		log.Printf("Eror during writing line-ending for state message: %s", err)
-		panic(err)
+		panic(errors.Wrap(err, "Error during writing line-ending for state message"))
 	}
 
 	err = clientConn.Flush()
