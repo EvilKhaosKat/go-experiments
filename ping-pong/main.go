@@ -18,16 +18,7 @@ const (
 	Server = "server"
 )
 
-//terminal representation
-const (
-	EmptySymbol   = ' '
-	BallSymbol    = '*'
-	BatBodySymbol = '#'
-	BorderSymbol  = '.'
-	Foreground    = termbox.ColorWhite
-	Background    = termbox.ColorBlack
-)
-
+//TODO rather bad architecture, update required
 func main() {
 	err := termbox.Init()
 	if err != nil {
@@ -56,29 +47,6 @@ func main() {
 	}
 }
 
-func handlePanic(finishGameChan chan bool) {
-	if r := recover(); r != nil {
-		termbox.Close()
-
-		fmt.Println(r)
-
-		finishGameChan <- true
-		os.Exit(0)
-	}
-}
-
-func readCommandLineFlags() (mode *string, port *int, ip *string) {
-	mode = flag.String("mode", Server, "working mode, either server (by default) or client")
-
-	port = flag.Int("port", Port, "a port for server to listen or for client to connect")
-	ip = flag.String("ip", "127.0.0.1", "ip address for client to connect")
-
-	flag.Parse()
-
-	return mode, port, ip
-}
-
-//TODO handle terminal events in more readable way
 func handleTerminalEvents(gameEvents chan GameEvent, finishGame chan bool) {
 terminalEventsLoop:
 	for {
@@ -87,10 +55,6 @@ terminalEventsLoop:
 			switch ev.Key {
 			case termbox.KeyEsc, termbox.KeyCtrlQ:
 				break terminalEventsLoop
-			case termbox.KeyArrowUp:
-				gameEvents <- RightBatUp
-			case termbox.KeyArrowDown:
-				gameEvents <- RightBatDown
 			default:
 				switch ev.Ch {
 				case 'w', 'W':
@@ -105,4 +69,26 @@ terminalEventsLoop:
 	}
 
 	finishGame <- true
+}
+
+func readCommandLineFlags() (mode *string, port *int, ip *string) {
+	mode = flag.String("mode", Server, "working mode, either server (by default) or client")
+
+	port = flag.Int("port", Port, "a port for server to listen or for client to connect")
+	ip = flag.String("ip", "127.0.0.1", "ip address for client to connect")
+
+	flag.Parse()
+
+	return mode, port, ip
+}
+
+func handlePanic(finishGameChan chan bool) {
+	if r := recover(); r != nil {
+		termbox.Close()
+
+		fmt.Println(r)
+
+		finishGameChan <- true
+		os.Exit(0)
+	}
 }

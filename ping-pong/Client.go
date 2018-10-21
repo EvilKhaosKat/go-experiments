@@ -24,6 +24,17 @@ mainLoop:
 	}
 }
 
+func connectToServer(finishGame chan bool, ip *string, port *int) *bufio.ReadWriter {
+	defer handlePanic(finishGame)
+
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", *ip, *port))
+	if err != nil {
+		panic(errors.Wrap(err, "Error occurred during connecting to server"))
+	}
+
+	return bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
+}
+
 func sendStateToServer(game *Game, serverConn *bufio.ReadWriter) {
 	defer handlePanic(game.finishGame)
 
@@ -44,24 +55,13 @@ func sendStateToServer(game *Game, serverConn *bufio.ReadWriter) {
 	}
 }
 
-func connectToServer(finishGame chan bool, ip *string, port *int) *bufio.ReadWriter {
-	defer handlePanic(finishGame)
-
-	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", *ip, *port))
-	if err != nil {
-		panic(errors.Wrap(err, "Error occurred during connecting to server"))
-	}
-
-	return bufio.NewReadWriter(bufio.NewReader(conn), bufio.NewWriter(conn))
-}
-
 func handleServerMessages(game *Game, serverConn *bufio.ReadWriter) {
 	defer handlePanic(game.finishGame)
 
 	for {
 		serverStateMessage, _, err := serverConn.ReadLine()
 		if err != nil {
-			panic(errors.Wrapf(err, "Error during reading server state message: %b", serverStateMessage))
+			panic(errors.Wrapf(err, "Error during reading server state message %b", serverStateMessage))
 		}
 
 		var serverGameState Game

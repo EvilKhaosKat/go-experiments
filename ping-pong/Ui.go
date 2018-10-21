@@ -6,6 +6,31 @@ import (
 	"os"
 )
 
+//terminal representation
+const (
+	EmptySymbol   = ' '
+	BallSymbol    = '*'
+	BatBodySymbol = '#'
+	BorderSymbol  = '.'
+	Foreground    = termbox.ColorWhite
+	Background    = termbox.ColorBlack
+)
+
+//visualize is a main method for terminal ui, using current game state prints out all the information for player.
+func visualize(game *Game) {
+	table := game.Table
+
+	clearTerminal(table.Width, table.Height)
+	drawBorders(table.Width, table.Height)
+
+	visualizeBall(table.Ball)
+	visualizeBat(table.LeftBat)
+	visualizeBat(table.RightBat)
+	visualizeScore(game.LeftPlayer, game.RightPlayer)
+
+	termbox.Flush()
+}
+
 func validateTerminalSize() {
 	width, height := termbox.Size()
 	reqWidth, reqHeight := getRequiredScreenSize()
@@ -21,20 +46,6 @@ func validateTerminalSize() {
 
 func getRequiredScreenSize() (width, height int) {
 	return TableWidth + 3, TableHeight + 3
-}
-
-func visualize(game *Game) {
-	table := game.Table
-
-	clearTerminal(table.Width, table.Height)
-	drawBorders(table.Width, table.Height)
-
-	visualizeBall(table.Ball)
-	visualizeBat(table.LeftBat)
-	visualizeBat(table.RightBat)
-	visualizeScore(game.LeftPlayer, game.RightPlayer)
-
-	termbox.Flush()
 }
 
 func visualizeScore(leftPlayer *Player, rightPlayer *Player) {

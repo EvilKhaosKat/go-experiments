@@ -14,10 +14,8 @@ const (
 	BallInitialSpeed = 1
 	BatSpeed         = 2
 	BallMaxSpeed     = 7
+	GameEventsBuffer = 5
 )
-
-type GameSettings struct {
-}
 
 //Game is a main ping-pong struct, will all the information about state, and handful methods like 'Tick'.
 //Player wins when gets 10 scores.
@@ -75,6 +73,7 @@ func (player *Player) String() string {
 	return fmt.Sprintf("Player{Name: %s, Score: %d}", player.Name, player.Score)
 }
 
+//NewGame constructs Game object and inner objects, filling them with suitable defaults.
 func NewGame() *Game {
 	rand.Seed(time.Now().UTC().UnixNano())
 
@@ -83,7 +82,7 @@ func NewGame() *Game {
 
 	table := newTable(leftBat, rightBat)
 
-	gameEvents := make(chan GameEvent, 5)
+	gameEvents := make(chan GameEvent, GameEventsBuffer)
 	finishGame := make(chan bool, 1)
 
 	game := &Game{table,
@@ -96,29 +95,12 @@ func NewGame() *Game {
 	return game
 }
 
+//launchGameEventsHandler launches async handling of game events
 func (game *Game) launchGameEventsHandler() {
 	go handleGameEvents(game)
 }
 
-func newTable(leftBat, rightBat *Bat) *Table {
-	return &Table{TableWidth, TableHeight,
-		leftBat,
-		rightBat,
-		newBall()}
-}
-
-func newBat(xCoor int) *Bat {
-	return &Bat{xCoor, TableHeight/2 - BatLength/2, BatLength, 0}
-}
-
-func newPlayer(name string, bat *Bat) *Player {
-	return &Player{name, bat, 0}
-}
-
-func newBall() *Ball {
-	return &Ball{TableWidth / 2, TableHeight / 2, BallInitialSpeed, BallInitialSpeed}
-}
-
+//handleGameEvents processes all the variety of game events, such as scoring, moving bat, etc.
 func handleGameEvents(game *Game) {
 	leftBat := game.Table.LeftBat
 	rightBat := game.Table.RightBat
@@ -186,6 +168,7 @@ func (game *Game) resetBallPosition() {
 	}
 }
 
+//Tick is a core method for Game, it updates worlds physics.
 func (game *Game) Tick() {
 	game.updateBallCoor()
 
@@ -267,6 +250,25 @@ func (game *Game) updateBallY(ball *Ball, height int) {
 		ball.Y = -ball.Y
 		ball.YSpeed = -ball.YSpeed
 	}
+}
+
+func newTable(leftBat, rightBat *Bat) *Table {
+	return &Table{TableWidth, TableHeight,
+		leftBat,
+		rightBat,
+		newBall()}
+}
+
+func newBat(xCoor int) *Bat {
+	return &Bat{xCoor, TableHeight/2 - BatLength/2, BatLength, 0}
+}
+
+func newPlayer(name string, bat *Bat) *Player {
+	return &Player{name, bat, 0}
+}
+
+func newBall() *Ball {
+	return &Ball{TableWidth / 2, TableHeight / 2, BallInitialSpeed, BallInitialSpeed}
 }
 
 func randomBool() bool {
