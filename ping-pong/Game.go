@@ -83,7 +83,7 @@ func NewGame() *Game {
 
 	table := newTable(leftBat, rightBat)
 
-	gameEvents := make(chan GameEvent, 1)
+	gameEvents := make(chan GameEvent, 5)
 	finishGame := make(chan bool, 1)
 
 	game := &Game{table,
